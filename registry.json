@@ -1,0 +1,65 @@
+{
+  "version": "1.0.0",
+  "updated": "2025-01-01",
+  "methods": {
+    "reflex": {
+      "id": "reflex",
+      "name": "Method REFLEX",
+      "description": "Universal modular architecture. Auto-generated Admin Panel, zero hardcoded config, self-describing modules via manifest.json.",
+      "repo": "exchanet/method_reflex",
+      "version": "1.0.0",
+      "tags": ["architecture", "modular", "admin-panel", "manifest", "core"],
+      "adapters": {
+        "cursor":   "adapters/cursor.md",
+        "windsurf": "adapters/windsurf.md",
+        "copilot":  "adapters/copilot.md",
+        "generic":  "adapters/generic.md"
+      },
+      "extras": {
+        "schema": "schemas/manifest.schema.json"
+      }
+    },
+    "pdca-t": {
+      "id": "pdca-t",
+      "name": "Method PDCA-T",
+      "description": "≥99% test coverage, zero vulnerabilities, systematic quality validation cycles. Use alongside REFLEX for pro-grade results.",
+      "repo": "exchanet/method_pdca-t_coding_Cursor",
+      "version": "1.0.0",
+      "tags": ["quality", "testing", "security", "coverage", "validation"],
+      "adapters": {
+        "cursor":   ".cursor/rules/METHOD-PDCA-T.md",
+        "windsurf": ".cursor/rules/METHOD-PDCA-T.md",
+        "copilot":  ".cursor/rules/METHOD-PDCA-T.md",
+        "generic":  ".cursor/rules/METHOD-PDCA-T.md"
+      }
+    },
+    "iris": {
+      "id": "iris",
+      "name": "Method IRIS",
+      "description": "Continuous improvement of existing systems. Diagnose, refactor and evolve without breaking architecture.",
+      "repo": "exchanet/method_IRIS",
+      "version": "1.0.0",
+      "tags": ["refactoring", "improvement", "evolution", "maintenance"],
+      "adapters": {
+        "cursor":   "adapters/cursor.md",
+        "windsurf": "adapters/windsurf.md",
+        "copilot":  "adapters/copilot.md",
+        "generic":  "adapters/generic.md"
+      }
+    },
+    "enterprise-builder": {
+      "id": "enterprise-builder",
+      "name": "Method Enterprise Builder",
+      "description": "Large-scale planning and architecture for complex projects. Define modules, dependencies and build order before writing code.",
+      "repo": "exchanet/method_enterprise_builder_planning",
+      "version": "1.0.0",
+      "tags": ["planning", "enterprise", "architecture", "scale"],
+      "adapters": {
+        "cursor":   "adapters/cursor.md",
+        "windsurf": "adapters/windsurf.md",
+        "copilot":  "adapters/copilot.md",
+        "generic":  "adapters/generic.md"
+      }
+    }
+  }
+}
