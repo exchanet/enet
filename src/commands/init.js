@@ -1,7 +1,8 @@
 import chalk from 'chalk'
 import fs from 'fs-extra'
 import path from 'path'
-import { prompt } from 'enquirer'
+import pkg from 'enquirer'
+const { prompt } = pkg
 
 export async function initCommand(options) {
   console.log(chalk.white('  Creating manifest.json\n'))
