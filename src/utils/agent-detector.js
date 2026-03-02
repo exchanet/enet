@@ -4,24 +4,10 @@ import path from 'path'
 export const AGENTS = {
   cursor: {
     name: 'Cursor',
-    signals: ['.cursor'],
+    signals: ['.cursor/rules', '.cursor'],
     installDir: '.cursor/rules',
     filename: 'enet-{id}.md',
     configNote: 'Rule auto-applies to all files (alwaysApply: true)'
-  },
-  windsurf: {
-    name: 'Windsurf',
-    signals: ['.windsurfrules', '.windsurf'],
-    installDir: '.',
-    filename: '.windsurfrules',
-    configNote: 'Appended to .windsurfrules'
-  },
-  copilot: {
-    name: 'GitHub Copilot',
-    signals: ['.github/copilot-instructions.md', '.github'],
-    installDir: '.github',
-    filename: 'copilot-instructions.md',
-    configNote: 'Written to .github/copilot-instructions.md'
   },
   antigravity: {
     name: 'Antigravity (Google)',
@@ -36,6 +22,20 @@ export const AGENTS = {
     installDir: '.',
     filename: 'CLAUDE.md',
     configNote: 'Written to CLAUDE.md — Claude Code reads this file automatically'
+  },
+  windsurf: {
+    name: 'Windsurf',
+    signals: ['.windsurfrules', '.windsurf'],
+    installDir: '.',
+    filename: '.windsurfrules',
+    configNote: 'Appended to .windsurfrules'
+  },
+  copilot: {
+    name: 'GitHub Copilot',
+    signals: ['.github/copilot-instructions.md'],
+    installDir: '.github',
+    filename: 'copilot-instructions.md',
+    configNote: 'Written to .github/copilot-instructions.md'
   },
   generic: {
     name: 'Generic Agent',
