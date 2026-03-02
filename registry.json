@@ -1,19 +1,21 @@
 {
   "version": "1.0.0",
-  "updated": "2025-01-01",
+  "updated": "2026-03-01",
   "methods": {
-    "reflex": {
-      "id": "reflex",
-      "name": "Method REFLEX",
+    "modular-design": {
+      "id": "modular-design",
+      "name": "Method Modular Design",
       "description": "Universal modular architecture. Auto-generated Admin Panel, zero hardcoded config, self-describing modules via manifest.json.",
-      "repo": "exchanet/method_reflex",
-      "version": "1.0.0",
+      "repo": "exchanet/method_modular_design",
+      "version": "2.0.0",
       "tags": ["architecture", "modular", "admin-panel", "manifest", "core"],
       "adapters": {
-        "cursor":   "adapters/cursor.md",
-        "windsurf": "adapters/windsurf.md",
-        "copilot":  "adapters/copilot.md",
-        "generic":  "adapters/generic.md"
+        "cursor":      "adapters/cursor.md",
+        "windsurf":    "adapters/windsurf.md",
+        "copilot":     "adapters/copilot.md",
+        "antigravity": "adapters/antigravity.md",
+        "claudecode":  "adapters/claudecode.md",
+        "generic":     "adapters/generic.md"
       },
       "extras": {
         "schema": "schemas/manifest.schema.json"
@@ -22,15 +24,17 @@
     "pdca-t": {
       "id": "pdca-t",
       "name": "Method PDCA-T",
-      "description": "≥99% test coverage, zero vulnerabilities, systematic quality validation cycles. Use alongside REFLEX for pro-grade results.",
+      "description": "≥99% test coverage, zero vulnerabilities, systematic quality validation cycles. Use alongside Modular Design for pro-grade results.",
       "repo": "exchanet/method_pdca-t_coding_Cursor",
       "version": "1.0.0",
       "tags": ["quality", "testing", "security", "coverage", "validation"],
       "adapters": {
-        "cursor":   ".cursor/rules/METHOD-PDCA-T.md",
-        "windsurf": ".cursor/rules/METHOD-PDCA-T.md",
-        "copilot":  ".cursor/rules/METHOD-PDCA-T.md",
-        "generic":  ".cursor/rules/METHOD-PDCA-T.md"
+        "cursor":      ".cursor/rules/METHOD-PDCA-T.md",
+        "windsurf":    ".cursor/rules/METHOD-PDCA-T.md",
+        "copilot":     ".cursor/rules/METHOD-PDCA-T.md",
+        "antigravity": ".cursor/rules/METHOD-PDCA-T.md",
+        "claudecode":  ".cursor/rules/METHOD-PDCA-T.md",
+        "generic":     ".cursor/rules/METHOD-PDCA-T.md"
       }
     },
     "iris": {
@@ -41,10 +45,12 @@
       "version": "1.0.0",
       "tags": ["refactoring", "improvement", "evolution", "maintenance"],
       "adapters": {
-        "cursor":   "adapters/cursor.md",
-        "windsurf": "adapters/windsurf.md",
-        "copilot":  "adapters/copilot.md",
-        "generic":  "adapters/generic.md"
+        "cursor":      "adapters/cursor.md",
+        "windsurf":    "adapters/windsurf.md",
+        "copilot":     "adapters/copilot.md",
+        "antigravity": "adapters/antigravity.md",
+        "claudecode":  "adapters/claudecode.md",
+        "generic":     "adapters/generic.md"
       }
     },
     "enterprise-builder": {
@@ -55,10 +61,12 @@
       "version": "1.0.0",
       "tags": ["planning", "enterprise", "architecture", "scale"],
       "adapters": {
-        "cursor":   "adapters/cursor.md",
-        "windsurf": "adapters/windsurf.md",
-        "copilot":  "adapters/copilot.md",
-        "generic":  "adapters/generic.md"
+        "cursor":      "adapters/cursor.md",
+        "windsurf":    "adapters/windsurf.md",
+        "copilot":     "adapters/copilot.md",
+        "antigravity": "adapters/antigravity.md",
+        "claudecode":  "adapters/claudecode.md",
+        "generic":     "adapters/generic.md"
       }
     }
   }

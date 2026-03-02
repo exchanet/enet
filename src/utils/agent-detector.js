@@ -23,6 +23,20 @@ export const AGENTS = {
     filename: 'copilot-instructions.md',
     configNote: 'Written to .github/copilot-instructions.md'
   },
+  antigravity: {
+    name: 'Antigravity (Google)',
+    signals: ['.agent/rules', '.agent'],
+    installDir: '.agent/rules',
+    filename: 'enet-{id}.md',
+    configNote: 'Rule saved to .agent/rules/ — set activation to Always On in Antigravity'
+  },
+  claudecode: {
+    name: 'Claude Code',
+    signals: ['CLAUDE.md', '.claude'],
+    installDir: '.',
+    filename: 'CLAUDE.md',
+    configNote: 'Written to CLAUDE.md — Claude Code reads this file automatically'
+  },
   generic: {
     name: 'Generic Agent',
     signals: [],

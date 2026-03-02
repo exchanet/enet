@@ -24,7 +24,7 @@ Think of it as `brew` or `npm`, but for AI coding architecture methods.
 
 | Method | What it does |
 |---|---|
-| `reflex` | Universal modular architecture. Auto-generated Admin Panel, zero hardcoded config. |
+| `modular-design` | Universal modular architecture. Auto-generated Admin Panel, zero hardcoded config. |
 | `pdca-t` | ≥99% test coverage, zero vulnerabilities, systematic quality validation. |
 | `iris` | Continuous improvement of existing systems without breaking architecture. |
 | `enterprise-builder` | Large-scale planning for complex projects before writing code. |
@@ -38,7 +38,7 @@ The registry is live — new methods appear automatically without updating enet.
 ### Install a method
 
 ```bash
-enet install reflex
+enet install modular-design
 enet install pdca-t
 enet install iris
 enet install enterprise-builder
@@ -48,10 +48,10 @@ enet detects your AI agent automatically and places the adapter in the right loc
 
 | Agent detected | Installs to |
 |---|---|
-| Cursor | `.cursor/rules/enet-reflex.md` |
+| Cursor | `.cursor/rules/enet-modular-design.md` |
 | Windsurf | Appended to `.windsurfrules` |
 | GitHub Copilot | `.github/copilot-instructions.md` |
-| None detected | `.enet/reflex.md` |
+| None detected | `.enet/modular-design.md` |
 
 Override with `--agent cursor\|windsurf\|copilot\|generic`.
 
@@ -99,15 +99,15 @@ enet validate --strict     # warnings become errors
 
 ```bash
 enet update              # update all installed methods
-enet update reflex       # update a specific method
+enet update modular-design       # update a specific method
 ```
 
 ---
 
 ## How it works
 
-1. `enet install reflex` fetches `registry.json` from this repo
-2. Finds the repo for `reflex` (`exchanet/method_reflex`)
+1. `enet install modular-design` fetches `registry.json` from this repo
+2. Finds the repo for `modular-design` (`exchanet/method_modular_design`)
 3. Detects your agent (Cursor, Windsurf, Copilot...)
 4. Downloads the right adapter from GitHub in real time
 5. Writes it to the correct location in your project

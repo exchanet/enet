@@ -62,7 +62,7 @@ export async function installCommand(methodId, options) {
     console.log(chalk.dim(`  → ${path.relative(process.cwd(), installPath)}`))
     console.log(chalk.dim(`  ${agent.configNote}\n`))
 
-    // Download extras (e.g. manifest.schema.json for reflex)
+    // Download extras (e.g. manifest.schema.json for modular-design)
     if (method.extras) {
       for (const [key, filePath] of Object.entries(method.extras)) {
         const extraSpinner = ora(`Fetching ${key}...`).start()
@@ -88,7 +88,7 @@ export async function installCommand(methodId, options) {
 }
 
 function printHints(methodId) {
-  if (methodId === 'reflex') {
+  if (methodId === 'modular-design') {
     console.log(chalk.dim('  Next:'))
     console.log(chalk.dim(`  1. Give your agent a spectech (stack + modules needed)`))
     console.log(chalk.dim(`  2. Agent declares architecture — confirm it`))
@@ -99,6 +99,6 @@ function printHints(methodId) {
   }
   if (methodId === 'pdca-t') {
     console.log(chalk.dim(`  PDCA-T adds quality validation to your workflow.`))
-    console.log(chalk.dim(`  Works best alongside ${chalk.white('enet install reflex')}.\n`))
+    console.log(chalk.dim(`  Works best alongside ${chalk.white('enet install modular-design')}.\n`))
   }
 }
