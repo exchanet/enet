@@ -3,13 +3,16 @@ import ora from 'ora'
 import fs from 'fs-extra'
 import path from 'path'
 import readline from 'readline'
-import { getAllMethods, getMethod, readInstallRecord, writeInstallRecord } from '../utils/registry.js'
+import { getAllMethods, getMethod, fetchFromGitHub, readInstallRecord, writeInstallRecord } from '../utils/registry.js'
 import { detectSystemAgents, getInstallPath, AGENTS } from '../utils/agent-detector.js'
 import { installForAgent } from './install.js'
 
 export async function updateCommand(methodId, options) {
   const spinner = ora('Fetching registry...').start()
-  const [allMethods, detectedAgents] = await Promise.all([getAllMethods(), detectSystemAgents()])
+  const [allMethods, detectedAgents] = await Promise.all([
+    getAllMethods(),
+    detectSystemAgents()
+  ])
   spinner.stop()
 
   const targets = methodId
@@ -28,6 +31,7 @@ export async function updateCommand(methodId, options) {
   for (const method of targets) {
     const record = await readInstallRecord(method.id)
 
+    // Skip methods not installed at all
     if (!record || record.agents.length === 0) {
       totalSkipped++
       console.log(chalk.dim(`  ${method.name} — not installed, skipping`))
@@ -42,13 +46,13 @@ export async function updateCommand(methodId, options) {
       .map(key => AGENTS[key] ? { key, ...AGENTS[key] } : null)
       .filter(Boolean)
 
-    // Agents newly detected but not yet installed for this method
+    // Agents newly detected on system but NOT yet installed for this method
     const newAgents = detectedAgents.filter(a =>
       !record.agents.includes(a.key) &&
       (method.adapters[a.key] || method.adapters['generic'])
     )
 
-    // 1. Update already-installed adapters
+    // ── 1. Update already-installed adapters ────────────────────
     if (!options.addOnly) {
       for (const agent of installedAgents) {
         const ok = await updateOneAdapter(method, agent, options)
@@ -56,7 +60,7 @@ export async function updateCommand(methodId, options) {
       }
     }
 
-    // 2. Offer to add newly detected agents
+    // ── 2. Offer to add newly detected agents ───────────────────
     if (newAgents.length > 0 && !options.updateOnly) {
       console.log(chalk.yellow(`\n  New agents detected since last install:\n`))
 
@@ -70,15 +74,21 @@ export async function updateCommand(methodId, options) {
 
       for (const agent of agentsToAdd) {
         const ok = await installForAgent(method, agent, options, true)
-        if (ok) { totalAdded++; record.agents.push(agent.key) }
+        if (ok) {
+          totalAdded++
+          record.agents.push(agent.key)
+        }
       }
 
+      // Save updated record with newly added agents
       await writeInstallRecord(method.id, { agents: record.agents, version: method.version })
+
     } else if (newAgents.length === 0 && !options.addOnly) {
       console.log(chalk.dim(`  No new agents detected.\n`))
     }
   }
 
+  // ── Summary ──────────────────────────────────────────────────
   console.log(chalk.dim('  ─────────────────────────────'))
   if (totalUpdated > 0) console.log(chalk.green(`  ✓ ${totalUpdated} adapter${totalUpdated !== 1 ? 's' : ''} updated`))
   if (totalAdded > 0)   console.log(chalk.green(`  ✓ ${totalAdded} new adapter${totalAdded !== 1 ? 's' : ''} installed`))
@@ -89,9 +99,14 @@ export async function updateCommand(methodId, options) {
   console.log()
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Update a single already-installed adapter
+// Re-downloads from GitHub and overwrites the local file
+// ─────────────────────────────────────────────────────────────────
+
 async function updateOneAdapter(method, agent, options = {}) {
-  const isGlobal   = options.global || false
-  const adapterKey = method.adapters[agent.key] ? agent.key : 'generic'
+  const isGlobal    = options.global || false
+  const adapterKey  = method.adapters[agent.key] ? agent.key : 'generic'
   const adapterPath = method.adapters[adapterKey]
 
   if (!adapterPath) {
@@ -105,10 +120,10 @@ async function updateOneAdapter(method, agent, options = {}) {
   const s = ora(`${action} ${agent.name}...`).start()
 
   try {
-    const { fetchFromGitHub } = await import('../utils/registry.js')
     const content = await fetchFromGitHub(method.repo, adapterPath)
     await fs.ensureDir(path.dirname(installPath))
 
+    // Windsurf: replace existing section, don't append duplicates
     if (agent.key === 'windsurf' && exists) {
       const existing = await fs.readFile(installPath, 'utf8')
       if (existing.includes(method.name)) {
@@ -126,15 +141,22 @@ async function updateOneAdapter(method, agent, options = {}) {
     s.succeed(chalk.green(`${agent.name} — ${action.toLowerCase()}d`))
     console.log(chalk.dim(`  → ${installPath}\n`))
     return true
+
   } catch (err) {
     s.fail(chalk.red(`${agent.name} — ${err.message}`))
     return false
   }
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Checkbox for new agents only (shown during update)
+// ─────────────────────────────────────────────────────────────────
+
 async function checkboxSelectNew(newAgents, method) {
   const items = newAgents.map(a => ({
-    agent: a, checked: true, usesGeneric: !method.adapters[a.key]
+    agent:       a,
+    checked:     true,
+    usesGeneric: !method.adapters[a.key]
   }))
 
   return new Promise((resolve) => {
@@ -144,16 +166,18 @@ async function checkboxSelectNew(newAgents, method) {
     const render = () => {
       if (render.drawn) process.stdout.write(`\x1B[${lineCount()}A`)
       render.drawn = true
+
       items.forEach((item, i) => {
         const isCursor = i === cursor
-        const box   = item.checked ? chalk.green('[✓]') : chalk.dim('[ ]')
-        const arrow = isCursor     ? chalk.cyan(' ❯ ')  : '   '
-        const name  = isCursor     ? chalk.white(item.agent.name) : chalk.dim(item.agent.name)
-        const tag   = item.usesGeneric ? chalk.dim(' (generic adapter)') : ''
-        process.stdout.write(`${arrow}${box} ${name}${tag}\n`)
+        const box     = item.checked     ? chalk.green('[✓]')           : chalk.dim('[ ]')
+        const arrow   = isCursor         ? chalk.cyan(' ❯ ')            : '   '
+        const name    = isCursor         ? chalk.white(item.agent.name) : chalk.dim(item.agent.name)
+        const generic = item.usesGeneric ? chalk.dim(' (generic adapter)') : ''
+        process.stdout.write(`${arrow}${box} ${name}${generic}\n`)
       })
+
       process.stdout.write('\n')
-      process.stdout.write(chalk.dim('  ↑↓ navigate · Space toggle · A all · Enter confirm\n\n'))
+      process.stdout.write(chalk.dim('  ↑↓ navigate · Space toggle · A all · Enter confirm · Ctrl+C cancel\n\n'))
     }
 
     render()
@@ -169,55 +193,22 @@ async function checkboxSelectNew(newAgents, method) {
       else if (k === ' ')        { items[cursor].checked = !items[cursor].checked; render() }
       else if (k === 'a' || k === 'A') {
         const all = items.every(i => i.checked)
-        items.forEach(i => { i.checked = !all }); render()
+        items.forEach(i => { i.checked = !all })
+        render()
       }
       else if (k === '\r' || k === '\n') {
         if (process.stdin.isTTY) process.stdin.setRawMode(false)
-        process.stdin.pause(); rl.close()
+        process.stdin.pause()
+        rl.close()
         resolve(items.filter(i => i.checked).map(i => i.agent))
       }
       else if (k === '\u0003') {
         if (process.stdin.isTTY) process.stdin.setRawMode(false)
-        process.stdin.pause(); rl.close()
-        console.log('\n'); process.exit(0)
+        process.stdin.pause()
+        rl.close()
+        console.log('\n')
+        process.exit(0)
       }
     })
   })
 }
-```
-
----
-
-## Dónde van estos archivos en el repo
-```
-exchanet/enet/
-├── src/
-│   ├── commands/
-│   │   ├── install.js   ← cambios A, B, C + checkboxSelect con alreadyInstalled
-│   │   └── update.js    ← reemplazar completo
-│   └── utils/
-│       └── registry.js  ← añadir al final las 2 funciones nuevas
-```
-
-Una vez subidos, el flujo queda así:
-```
-$ enet install pdca-t        # primera vez
-  Already installed for: copilot   ← lee .enet/installed.json
-
-  Select adapters to install:
-   ❯ [✓] Cursor              — new
-     [✓] Antigravity          — new
-     [✓] Claude Code          — new
-     [✓] GitHub Copilot       — installed   ← sabe que ya está
-
-$ enet update pdca-t         # después de instalar Windsurf
-  Method PDCA-T
-  Installed for: cursor, claudecode
-
-  Updating Cursor...          ✓  ← re-descarga adapter
-  Updating Claude Code...     ✓
-
-  New agents detected since last install:
-   ❯ [✓] Windsurf             — new
-
-  → instala Windsurf y actualiza installed.json
