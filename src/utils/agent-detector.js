@@ -1,70 +1,127 @@
 import fs from 'fs-extra'
 import path from 'path'
+import os from 'os'
+
+const HOME = os.homedir()
 
 export const AGENTS = {
   cursor: {
     name: 'Cursor',
-    signals: ['.cursor/rules', '.cursor'],
-    installDir: '.cursor/rules',
+    systemSignals: [
+      path.join(HOME, '.cursor')
+    ],
+    projectSignals: ['.cursor/rules', '.cursor'],
+    projectInstallDir: '.cursor/rules',
+    globalInstallDir: path.join(HOME, '.cursor', 'rules'),
     filename: 'enet-{id}.md',
     configNote: 'Rule auto-applies to all files (alwaysApply: true)'
   },
+  windsurf: {
+    name: 'Windsurf',
+    systemSignals: [
+      path.join(HOME, '.codeium', 'windsurf')
+    ],
+    projectSignals: ['.windsurfrules', '.windsurf'],
+    projectInstallDir: '.',
+    globalInstallDir: path.join(HOME, '.codeium', 'windsurf', 'memories'),
+    globalFilename: 'global_rules.md',
+    filename: '.windsurfrules',
+    configNote: 'Appended to global_rules.md'
+  },
   antigravity: {
     name: 'Antigravity (Google)',
-    signals: ['.agent/rules', '.agent'],
-    installDir: '.agent/rules',
+    systemSignals: [
+      path.join(HOME, '.gemini', 'antigravity')
+    ],
+    projectSignals: ['.agent/rules', '.agent'],
+    projectInstallDir: '.agent/rules',
+    globalInstallDir: path.join(HOME, '.gemini', 'antigravity', 'skills', 'method-modular-design'),
+    globalFilename: 'SKILL.md',
     filename: 'enet-{id}.md',
-    configNote: 'Rule saved to .agent/rules/ — set activation to Always On in Antigravity'
+    configNote: 'Skill saved — set activation to Always On in Antigravity'
   },
   claudecode: {
     name: 'Claude Code',
-    signals: ['CLAUDE.md', '.claude'],
-    installDir: '.',
+    systemSignals: [
+      path.join(HOME, '.claude')
+    ],
+    projectSignals: ['CLAUDE.md', '.claude'],
+    projectInstallDir: '.',
+    globalInstallDir: path.join(HOME, '.claude'),
+    globalFilename: 'CLAUDE.md',
     filename: 'CLAUDE.md',
-    configNote: 'Written to CLAUDE.md — Claude Code reads this file automatically'
-  },
-  windsurf: {
-    name: 'Windsurf',
-    signals: ['.windsurfrules', '.windsurf'],
-    installDir: '.',
-    filename: '.windsurfrules',
-    configNote: 'Appended to .windsurfrules'
+    configNote: 'Written to ~/.claude/CLAUDE.md — Claude Code reads this automatically'
   },
   copilot: {
     name: 'GitHub Copilot',
-    signals: ['.github/copilot-instructions.md'],
-    installDir: '.github',
+    systemSignals: [],
+    projectSignals: ['.github/copilot-instructions.md'],
+    projectInstallDir: '.github',
+    globalInstallDir: null,
     filename: 'copilot-instructions.md',
     configNote: 'Written to .github/copilot-instructions.md'
   },
   generic: {
     name: 'Generic Agent',
-    signals: [],
-    installDir: '.enet',
+    systemSignals: [],
+    projectSignals: [],
+    projectInstallDir: '.enet',
+    globalInstallDir: null,
     filename: '{id}.md',
     configNote: 'Saved to .enet/ — paste contents into your agent\'s context'
   }
 }
 
 /**
- * Detects which AI agent is active in the current project.
+ * Detects ALL agents installed on the system by checking known global paths.
  */
-export async function detectAgent(cwd = process.cwd()) {
+export async function detectSystemAgents() {
+  const found = []
   for (const [key, agent] of Object.entries(AGENTS)) {
     if (key === 'generic') continue
-    for (const signal of agent.signals) {
-      if (await fs.pathExists(path.join(cwd, signal))) {
-        return { key, ...agent }
+    for (const signal of agent.systemSignals) {
+      if (await fs.pathExists(signal)) {
+        found.push({ key, ...agent })
+        break
       }
     }
   }
-  return { key: 'generic', ...AGENTS.generic }
+  return found
 }
 
 /**
- * Returns the full install path for a method adapter.
+ * Detects ALL agents present in the current project.
  */
-export function getInstallPath(agent, methodId, cwd = process.cwd()) {
+export async function detectProjectAgents(cwd = process.cwd()) {
+  const found = []
+  for (const [key, agent] of Object.entries(AGENTS)) {
+    if (key === 'generic') continue
+    for (const signal of agent.projectSignals) {
+      if (await fs.pathExists(path.join(cwd, signal))) {
+        found.push({ key, ...agent })
+        break
+      }
+    }
+  }
+  return found
+}
+
+/**
+ * Returns the first detected agent (legacy, used by status/doctor).
+ */
+export async function detectAgent(cwd = process.cwd()) {
+  const agents = await detectProjectAgents(cwd)
+  return agents[0] ?? { key: 'generic', ...AGENTS.generic }
+}
+
+/**
+ * Returns the install path for a method adapter.
+ */
+export function getInstallPath(agent, methodId, { global = false, cwd = process.cwd() } = {}) {
+  if (global) {
+    const filename = agent.globalFilename ?? agent.filename.replace('{id}', methodId)
+    return path.join(agent.globalInstallDir, filename)
+  }
   const filename = agent.filename.replace('{id}', methodId)
-  return path.join(cwd, agent.installDir, filename)
+  return path.join(cwd, agent.projectInstallDir, filename)
 }

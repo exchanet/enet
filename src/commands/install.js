@@ -2,11 +2,11 @@ import chalk from 'chalk'
 import ora from 'ora'
 import fs from 'fs-extra'
 import path from 'path'
-import { detectAgent, getInstallPath, AGENTS } from '../utils/agent-detector.js'
-import { getMethod } from '../utils/registry.js'
-import { fetchFromGitHub } from '../utils/registry.js'
+import { detectSystemAgents, getInstallPath, AGENTS } from '../utils/agent-detector.js'
+import { getMethod, fetchFromGitHub } from '../utils/registry.js'
 
 export async function installCommand(methodId, options) {
+  // Load method from registry
   const spinner = ora('Fetching registry...').start()
   const method = await getMethod(methodId).catch(() => null)
   spinner.stop()
@@ -17,40 +17,92 @@ export async function installCommand(methodId, options) {
     process.exit(1)
   }
 
-  // Detect or force agent
-  let agent
+  // Determine target agents
+  let targetAgents = []
+
   if (options.agent) {
+    // --agent flag: install for a specific agent only
     if (!AGENTS[options.agent]) {
       console.log(chalk.red(`  ✗ Unknown agent: "${options.agent}"`))
-      console.log(chalk.dim(`  Valid: cursor, windsurf, copilot, generic\n`))
+      console.log(chalk.dim(`  Valid: ${Object.keys(AGENTS).filter(k => k !== 'generic').join(', ')}\n`))
       process.exit(1)
     }
-    agent = { key: options.agent, ...AGENTS[options.agent] }
+    targetAgents = [{ key: options.agent, ...AGENTS[options.agent] }]
+
   } else {
-    agent = await detectAgent()
+    // Detect all agents installed on the system
+    const detected = await detectSystemAgents()
+
+    if (detected.length === 0) {
+      console.log(chalk.yellow('  ⚠ No AI agents detected on this system.'))
+      console.log(chalk.dim(`  Use ${chalk.white('--agent <name>')} to force an agent.`))
+      console.log(chalk.dim(`  Valid: cursor, windsurf, antigravity, claudecode, copilot, generic\n`))
+      process.exit(1)
+    }
+
+    if (detected.length === 1 || options.global) {
+      // Only one detected, or --global flag: install for all without asking
+      targetAgents = detected
+    } else {
+      // Multiple agents detected: ask the user
+      console.log(chalk.white(`\n  Detected ${detected.length} agents on this system:\n`))
+      detected.forEach((a, i) => console.log(chalk.dim(`  [${i + 1}] ${a.name}`)))
+      console.log(chalk.dim(`  [${detected.length + 1}] All of the above\n`))
+
+      const { createInterface } = await import('readline')
+      const rl = createInterface({ input: process.stdin, output: process.stdout })
+      const answer = await new Promise(resolve => {
+        rl.question(chalk.white('  Install for which agent(s)? '), resolve)
+      })
+      rl.close()
+
+      const choice = parseInt(answer.trim())
+      if (choice === detected.length + 1) {
+        targetAgents = detected
+      } else if (choice >= 1 && choice <= detected.length) {
+        targetAgents = [detected[choice - 1]]
+      } else {
+        console.log(chalk.red('\n  Invalid choice. Cancelled.\n'))
+        process.exit(1)
+      }
+    }
   }
 
-  console.log(chalk.dim(`  Method : ${chalk.white(method.name)}`))
-  console.log(chalk.dim(`  Agent  : ${chalk.white(agent.name)}${options.agent ? '' : chalk.dim(' (auto-detected)')}`))
-  console.log(chalk.dim(`  Source : ${chalk.white(`github.com/${method.repo}`)}\n`))
+  console.log()
 
-  const fetchSpinner = ora(`Fetching adapter...`).start()
+  // Install for each target agent
+  let schemaInstalled = false
+  for (const agent of targetAgents) {
+    await installForAgent(method, agent, options, schemaInstalled)
+    schemaInstalled = true // only install schema once
+  }
+
+  printHints(methodId)
+}
+
+async function installForAgent(method, agent, options, skipExtras = false) {
+  const isGlobal = options.global || false
+  const adapterKey = method.adapters[agent.key] ? agent.key : 'generic'
+  const adapterPath = method.adapters[adapterKey]
+
+  if (isGlobal && !agent.globalInstallDir) {
+    console.log(chalk.yellow(`  ⚠ ${agent.name} does not support global install — skipping`))
+    return
+  }
+
+  const spinner = ora(`Installing for ${agent.name}${isGlobal ? ' (global)' : ''}...`).start()
 
   try {
-    const adapterPath = method.adapters[agent.key] ?? method.adapters.generic
     const content = await fetchFromGitHub(method.repo, adapterPath)
-
-    const installPath = options.global
-      ? path.join(process.env.HOME || process.env.USERPROFILE, '.enet', `${methodId}.md`)
-      : getInstallPath(agent, methodId)
+    const installPath = getInstallPath(agent, method.id, { global: isGlobal })
 
     await fs.ensureDir(path.dirname(installPath))
 
-    // Windsurf appends, others overwrite
+    // Windsurf global appends to global_rules.md
     if (agent.key === 'windsurf' && await fs.pathExists(installPath)) {
       const existing = await fs.readFile(installPath, 'utf8')
       if (existing.includes(method.name)) {
-        fetchSpinner.warn(chalk.yellow(`${method.name} already installed`))
+        spinner.warn(chalk.yellow(`${agent.name} — already installed`))
         return
       }
       await fs.appendFile(installPath, `\n\n---\n\n${content}`)
@@ -58,32 +110,29 @@ export async function installCommand(methodId, options) {
       await fs.writeFile(installPath, content)
     }
 
-    fetchSpinner.succeed(chalk.green(`${method.name} installed`))
-    console.log(chalk.dim(`  → ${path.relative(process.cwd(), installPath)}`))
+    spinner.succeed(chalk.green(`${agent.name} — installed`))
+    console.log(chalk.dim(`  → ${installPath}`))
     console.log(chalk.dim(`  ${agent.configNote}\n`))
 
-    // Download extras (e.g. manifest.schema.json for modular-design)
-    if (method.extras) {
-      for (const [key, filePath] of Object.entries(method.extras)) {
-        const extraSpinner = ora(`Fetching ${key}...`).start()
-        try {
-          const extraContent = await fetchFromGitHub(method.repo, filePath)
-          const extraOut = path.join(process.cwd(), path.basename(filePath))
-          await fs.writeFile(extraOut, extraContent)
-          extraSpinner.succeed(chalk.dim(`${key} → ${path.basename(filePath)}`))
-        } catch {
-          extraSpinner.warn(chalk.dim(`${key} not available (non-critical)`))
-        }
-      }
-      console.log()
-    }
-
-    printHints(methodId)
-
   } catch (err) {
-    fetchSpinner.fail(chalk.red(`Failed: ${err.message}`))
-    console.log(chalk.dim('  Check your internet connection and try again.\n'))
-    process.exit(1)
+    spinner.fail(chalk.red(`${agent.name} — ${err.message}`))
+    return
+  }
+
+  // Download extras (schema, etc.) once
+  if (!skipExtras && method.extras) {
+    for (const [key, filePath] of Object.entries(method.extras)) {
+      const extraSpinner = ora(`Fetching ${key}...`).start()
+      try {
+        const extraContent = await fetchFromGitHub(method.repo, filePath)
+        const extraOut = path.join(process.cwd(), path.basename(filePath))
+        await fs.writeFile(extraOut, extraContent)
+        extraSpinner.succeed(chalk.dim(`${key} → ${path.basename(filePath)}`))
+      } catch {
+        extraSpinner.warn(chalk.dim(`${key} not available (non-critical)`))
+      }
+    }
+    console.log()
   }
 }
 
@@ -95,7 +144,7 @@ function printHints(methodId) {
     console.log(chalk.dim(`  3. Agent builds Core → modules → Admin Panel`))
     console.log()
     console.log(chalk.dim(`  ${chalk.white('enet new module <name>')}   scaffold your first module`))
-    console.log(chalk.dim(`  ${chalk.white('enet validate')}            check manifests at any time\n`))
+    console.log(chalk.dim(`  ${chalk.white('enet validate')}             check manifests at any time\n`))
   }
   if (methodId === 'pdca-t') {
     console.log(chalk.dim(`  PDCA-T adds quality validation to your workflow.`))
