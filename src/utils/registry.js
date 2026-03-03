@@ -3,7 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const RAW_BASE   = 'https://raw.githubusercontent.com'
+const RAW_BASE     = 'https://raw.githubusercontent.com'
 const REGISTRY_URL = `${RAW_BASE}/exchanet/enet/main/registry.json`
 const CACHE_FILE   = path.join(__dirname, '../../.registry-cache.json')
 const CACHE_TTL_MS = 1000 * 60 * 60 // 1 hour
@@ -82,7 +82,7 @@ export async function fetchFromGitHub(repo, filePath) {
 // ── Install state ─────────────────────────────────────────────────────────────
 //
 // Tracks which agents have each method installed.
-// Stored in .enet/installed.json in the project root.
+// Stored in <project>/.enet/installed.json
 //
 // Format:
 // {
@@ -90,19 +90,15 @@ export async function fetchFromGitHub(repo, filePath) {
 //     "agents": ["cursor", "claudecode", "antigravity"],
 //     "version": "3.0.0",
 //     "updatedAt": "2025-03-01T10:00:00.000Z"
-//   },
-//   "modular-design": { ... }
+//   }
 // }
 
 function getInstallRecordFile() {
-  // Resolve relative to cwd so it works in any project
   return path.join(process.cwd(), '.enet', 'installed.json')
 }
 
 /**
- * Reads the install record for a single method.
- * Returns { agents: ['cursor', ...], version: '3.0.0', updatedAt: '...' }
- * or null if the method has never been installed.
+ * Returns the install record for a single method, or null if never installed.
  */
 export async function readInstallRecord(methodId) {
   try {
@@ -116,25 +112,22 @@ export async function readInstallRecord(methodId) {
 }
 
 /**
- * Writes (or updates) the install record for a single method.
- * Merges with existing records — other methods are not touched.
+ * Writes the install record for a single method.
+ * Merges with existing records — other methods are never touched.
  */
 export async function writeInstallRecord(methodId, record) {
   try {
     const file = getInstallRecordFile()
     await fs.ensureDir(path.dirname(file))
-
     let data = {}
     if (await fs.pathExists(file)) {
       data = await fs.readJson(file).catch(() => ({}))
     }
-
     data[methodId] = {
-      agents: record.agents,
-      version: record.version ?? null,
+      agents:    record.agents,
+      version:   record.version ?? null,
       updatedAt: new Date().toISOString()
     }
-
     await fs.writeJson(file, data, { spaces: 2 })
   } catch {
     // Non-fatal — install works correctly even if state cannot be saved

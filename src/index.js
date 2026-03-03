@@ -77,7 +77,7 @@ program
 program
   .command('init')
   .description('Interactively create a manifest.json for a new module')
-  .option('-n, --name <name>', 'Module name')
+  .option('-n, --name <n>', 'Module name')
   .option('-s, --section <section>', 'Admin Panel section')
   .option('--json', 'Print manifest as JSON without writing to disk')
   .action(initCommand)
@@ -90,7 +90,7 @@ program
   .action(validateCommand)
 
 program
-  .command('new <type> <name>')
+  .command('new <type> <n>')
   .description('Scaffold a new module, ui-pack or integration')
   .option('-s, --section <section>', 'Admin Panel section')
   .option('--dry-run', 'Preview files without writing')
