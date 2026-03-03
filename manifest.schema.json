@@ -1,0 +1,191 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/exchanet/method-reflex/manifest.schema.json",
+  "title": "Method REFLEX — Module Manifest",
+  "description": "Universal contract for self-describing modules. Every module must have a valid manifest.",
+  "type": "object",
+  "required": ["id", "name", "version", "type", "section"],
+  "additionalProperties": false,
+
+  "definitions": {
+    "handlerRef": {
+      "type": "string",
+      "pattern": "^[A-Z][a-zA-Z0-9]*\\.[a-z][a-zA-Z0-9]*$",
+      "description": "ClassName.methodName — e.g. ActivityLogger.getAll"
+    },
+    "capabilityType": {
+      "type": "string",
+      "enum": ["view", "action", "metric", "widget", "page", "theme", "component-override"]
+    },
+    "uiWidget": {
+      "type": "string",
+      "enum": ["text", "textarea", "number", "slider", "toggle", "select", "multiselect", "code", "color", "date", "tags"]
+    },
+    "settingType": {
+      "type": "string",
+      "enum": ["integer", "number", "string", "boolean", "select", "multiselect"]
+    }
+  },
+
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "minLength": 2,
+      "maxLength": 64,
+      "description": "Unique module identifier. kebab-case. Used in URLs, API paths, and settings namespace."
+    },
+
+    "name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 100,
+      "description": "Human-readable module name. Shown in Admin Panel navigation."
+    },
+
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "description": "Semantic version: major.minor.patch"
+    },
+
+    "type": {
+      "type": "string",
+      "enum": ["core", "functional", "integration", "ui"],
+      "description": "core: system-level. functional: business logic. integration: external services. ui: themes and components."
+    },
+
+    "section": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Admin Panel navigation group. Modules with the same section are grouped together."
+    },
+
+    "description": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Optional. Human-readable description of the module."
+    },
+
+    "icon": {
+      "type": "string",
+      "description": "Optional. Icon name from the project's icon library."
+    },
+
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "description": "Module IDs that must be booted before this module."
+    },
+
+    "hooks": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)*$": {
+          "$ref": "#/definitions/handlerRef"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Events this module listens to. Format: { 'event.name': 'ClassName.method' }"
+    },
+
+    "settings": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-z0-9_]*$": {
+          "type": "object",
+          "required": ["type", "label", "default"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "$ref": "#/definitions/settingType" },
+            "label": { "type": "string" },
+            "description": { "type": "string" },
+            "default": {},
+            "ui": { "$ref": "#/definitions/uiWidget" },
+            "options": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  { "type": "string" },
+                  {
+                    "type": "object",
+                    "required": ["label", "value"],
+                    "properties": {
+                      "label": { "type": "string" },
+                      "value": {}
+                    }
+                  }
+                ]
+              },
+              "description": "Required when type is select or multiselect."
+            },
+            "min": { "type": "number" },
+            "max": { "type": "number" },
+            "required": { "type": "boolean", "default": false }
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Configuration fields. Auto-rendered as forms in Admin Panel. Read via context.settings.get('key'). Never hardcode."
+    },
+
+    "capabilities": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "required": ["type", "label"],
+        "additionalProperties": false,
+        "properties": {
+          "type": { "$ref": "#/definitions/capabilityType" },
+          "label": { "type": "string" },
+          "description": { "type": "string" },
+          "icon": { "type": "string" },
+          "data": {
+            "$ref": "#/definitions/handlerRef",
+            "description": "Handler that returns data. Required for: view, metric, widget."
+          },
+          "handler": {
+            "$ref": "#/definitions/handlerRef",
+            "description": "Handler that executes an operation. Required for: action."
+          },
+          "component": {
+            "type": "string",
+            "pattern": "^[A-Z][a-zA-Z0-9]*$",
+            "description": "Custom UI component name. For widget and page types."
+          },
+          "route": {
+            "type": "string",
+            "pattern": "^/[a-z0-9-/]*$",
+            "description": "URL route for page capabilities. Relative to /admin/{module-id}/"
+          },
+          "dangerous": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, Admin Panel shows a confirmation dialog before executing."
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$"
+            },
+            "description": "Required permissions. Format: 'scope:action' e.g. 'users:delete'"
+          },
+          "target": {
+            "type": "string",
+            "description": "For component-override: the component name to replace."
+          },
+          "variables": {
+            "type": "object",
+            "description": "For theme capabilities: CSS custom property values."
+          }
+        }
+      },
+      "description": "What this module exposes. Each capability becomes a UI element in Admin Panel or dashboard."
+    }
+  }
+}

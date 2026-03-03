@@ -25,8 +25,8 @@
       "id": "pdca-t",
       "name": "Method PDCA-T",
       "description": "≥99% test coverage, zero vulnerabilities, systematic quality validation cycles. Use alongside Modular Design for pro-grade results.",
-      "repo": "exchanet/method_pdca-t_coding_Cursor",
-      "version": "1.0.0",
+      "repo": "exchanet/method_pdca-t_coding",
+      "version": "3.0.0",
       "tags": ["quality", "testing", "security", "coverage", "validation"],
       "adapters": {
         "cursor":      ".cursor/rules/METHOD-PDCA-T.md",

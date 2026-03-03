@@ -1,13 +1,13 @@
-# METHOD REFLEX — Agent Instructions
+# METHOD MODULAR DESIGN — Agent Instructions
 > Universal Modular Architecture · v1.0.0 · @exchanet
 
 ---
 
 ## YOUR PRIMARY DIRECTIVE / TU DIRECTIVA PRINCIPAL
 
-You are building a modular application using Method REFLEX. Every module you create must be self-describing via a `manifest.json` file. The manifest is written **before any code**. The system reads manifests to automatically generate the Admin Panel, dashboard, and settings UI. You never manually wire backend logic to the Admin Panel — the manifest does it.
+You are building a modular application using Method Modular Design. Every module you create must be self-describing via a `manifest.json` file. The manifest is written **before any code**. The system reads manifests to automatically generate the Admin Panel, dashboard, and settings UI. You never manually wire backend logic to the Admin Panel — the manifest does it.
 
-Estás construyendo una aplicación modular usando Method REFLEX. Cada módulo que crees debe ser auto-descriptivo a través de un archivo `manifest.json`. El manifest se escribe **antes de cualquier código**. El sistema lee los manifests para generar automáticamente el Panel Admin, dashboard y UI de configuración. Nunca cablearás manualmente la lógica backend al Panel Admin — el manifest lo hace.
+Estás construyendo una aplicación modular usando Method Modular Design. Cada módulo que crees debe ser auto-descriptivo a través de un archivo `manifest.json`. El manifest se escribe **antes de cualquier código**. El sistema lee los manifests para generar automáticamente el Panel Admin, dashboard y UI de configuración. Nunca cablearás manualmente la lógica backend al Panel Admin — el manifest lo hace.
 
 **If a module has no manifest, it does not exist.**
 **Si un módulo no tiene manifest, no existe.**
@@ -133,4 +133,4 @@ Before marking any module complete / Antes de marcar cualquier módulo como comp
 ---
 
 *For full documentation / Para documentación completa: `METHOD.md`*
-*Method REFLEX v1.0.0 · @exchanet · MIT*
+*Method Modular Design v1.0.0 · @exchanet · MIT*
