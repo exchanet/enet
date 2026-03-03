@@ -83,3 +83,31 @@ export async function fetchFromGitHub(repo, filePath) {
 
   return res.text()
 }
+
+// ── Install state ─────────────────────────────────────────────────────────────
+// Stored in <project>/.enet/installed.json
+// { "pdca-t": { "agents": ["cursor", "claudecode"], "version": "3.0.0", "updatedAt": "..." } }
+
+function getInstallRecordFile() {
+  return path.join(process.cwd(), '.enet', 'installed.json')
+}
+
+export async function readInstallRecord(methodId) {
+  try {
+    const file = getInstallRecordFile()
+    if (!await fs.pathExists(file)) return null
+    const data = await fs.readJson(file)
+    return data[methodId] ?? null
+  } catch { return null }
+}
+
+export async function writeInstallRecord(methodId, record) {
+  try {
+    const file = getInstallRecordFile()
+    await fs.ensureDir(path.dirname(file))
+    let data = {}
+    if (await fs.pathExists(file)) data = await fs.readJson(file).catch(() => ({}))
+    data[methodId] = { agents: record.agents, version: record.version ?? null, updatedAt: new Date().toISOString() }
+    await fs.writeJson(file, data, { spaces: 2 })
+  } catch { /* non-fatal */ }
+}

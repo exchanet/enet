@@ -20,6 +20,11 @@ export async function installCommand(methodId, options) {
 
   console.log(chalk.bold(`\n  ◆ ${method.name}`))
   console.log(chalk.dim(`  ${method.description}\n`))
+    const record = await readInstallRecord(methodId)
+    const alreadyInstalled = new Set(record?.agents ?? [])
+    if (alreadyInstalled.size > 0) {
+      console.log(chalk.dim(`  Already installed for: ${[...alreadyInstalled].join(', ')}\n`))
+    }
 
   // 2. Determine target agents
   let targetAgents = []
