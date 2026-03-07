@@ -2,7 +2,7 @@ import chalk from 'chalk'
 import fs from 'fs-extra'
 import path from 'path'
 import ora from 'ora'
-import { detectAgent, getInstallPath } from '../utils/agent-detector.js'
+import { detectAgent, getInstallPath } from '../utils/agent_detector.js'
 import { getAllMethods } from '../utils/registry.js'
 
 export async function doctorCommand() {

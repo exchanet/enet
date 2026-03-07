@@ -169,7 +169,7 @@ exchanet/enet/
     │   └── doctor.js      ← enet doctor
     └── utils/
         ├── registry.js    ← loads registry.json from GitHub, caches locally
-        └── agent-detector.js ← detects Cursor / Windsurf / Copilot
+        └── agent_detector.js ← detects Cursor / Windsurf / Copilot
 ```
 
 ---

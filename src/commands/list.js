@@ -2,7 +2,7 @@ import chalk from 'chalk'
 import ora from 'ora'
 import fs from 'fs-extra'
 import { getAllMethods } from '../utils/registry.js'
-import { detectAgent, getInstallPath } from '../utils/agent-detector.js'
+import { detectAgent, getInstallPath } from '../utils/agent_detector.js'
 
 export async function listCommand(options) {
   const spinner = ora('Fetching registry...').start()

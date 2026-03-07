@@ -3,7 +3,7 @@ import ora from 'ora'
 import fs from 'fs-extra'
 import path from 'path'
 import readline from 'readline'
-import { detectSystemAgents, getInstallPath, AGENTS } from '../utils/agent-detector.js'
+import { detectSystemAgents, getInstallPath, AGENTS } from '../utils/agent_detector.js'
 import { getMethod, fetchFromGitHub, readInstallRecord, writeInstallRecord } from '../utils/registry.js'
 
 export async function installCommand(methodId, options) {
