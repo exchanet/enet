@@ -1,6 +1,6 @@
 {
   "name": "@exchanet/enet",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "enet — exchanet methods manager. Install, scaffold and manage AI coding methods.",
   "bin": {
     "enet": "src/index.js"
