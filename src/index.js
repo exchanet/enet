@@ -35,7 +35,10 @@ function isNewerVersion (latest, current) {
 
 async function checkForUpdate () {
   try {
-    const res = await fetch('https://registry.npmjs.org/@exchanet/enet/latest', { signal: AbortSignal.timeout(3000) })
+    const res = await fetch('https://registry.npmjs.org/@exchanet/enet/latest', {
+      signal: AbortSignal.timeout(5000),
+      headers: { 'Accept': 'application/json', 'User-Agent': `enet/${VERSION}` }
+    })
     if (!res.ok) return
     const data = await res.json()
     const latest = data?.version
