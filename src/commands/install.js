@@ -3,11 +3,12 @@ import ora from 'ora'
 import fs from 'fs-extra'
 import path from 'path'
 import enquirer from 'enquirer'
-const { MultiSelect } = enquirer
+const { MultiSelect, Select } = enquirer
 import { detectSystemAgents, getInstallPath, AGENTS } from '../utils/agent_detector.js'
 import { getMethod, fetchFromGitHub, readInstallRecord, writeInstallRecord } from '../utils/registry.js'
 
 export async function installCommand(methodId, options) {
+  if (options.project) options.global = false
   // 1. Load method from registry
   const spinner = ora('Fetching registry...').start()
   const method = await getMethod(methodId).catch(() => null)
@@ -20,12 +21,7 @@ export async function installCommand(methodId, options) {
   }
 
   console.log(chalk.bold(`\n  ◆ ${method.name}`))
-  console.log(chalk.dim(`  ${method.description}`))
-  if (options.global) {
-    console.log(chalk.cyan('  Destination: global (home) — available for all agents/projects\n'))
-  } else {
-    console.log(chalk.dim(`  Destination: current project (use ${chalk.white('--global')} for all agents)\n`))
-  }
+  console.log(chalk.dim(`  ${method.description}\n`))
 
   // 2. Read existing install record — know what is already installed
   const record = await readInstallRecord(methodId)
@@ -70,7 +66,31 @@ export async function installCommand(methodId, options) {
     }
   }
 
-  console.log()
+  // 3b. If neither -g nor -p was passed, ask: global or project?
+  if (options.global === undefined && process.stdin.isTTY) {
+    const destPrompt = new Select({
+      name: 'destination',
+      message: 'Install to:',
+      choices: [
+        { name: 'global', message: 'Global (home) — available for all agents and projects', value: true },
+        { name: 'project', message: 'Project — this folder only', value: false }
+      ]
+    })
+    try {
+      options.global = await destPrompt.run()
+    } catch {
+      console.log(chalk.dim('\n  Cancelled.\n'))
+      process.exit(0)
+    }
+  }
+  // Default when not TTY or when skipped: global
+  if (options.global === undefined) options.global = true
+
+  if (options.global) {
+    console.log(chalk.cyan('\n  Destination: global (home) — available for all agents/projects\n'))
+  } else {
+    console.log(chalk.dim('\n  Destination: this project only\n'))
+  }
 
   // 4. Install each selected agent
   const newlyInstalled = []
@@ -107,10 +127,10 @@ async function checkboxSelect(detected, method, alreadyInstalled = new Set(), op
     console.log(chalk.dim(`  No adapter for: ${unavailable.map(a => a.name).join(', ')}\n`))
   }
 
-  const installScope = options.global ? 'global (home)' : 'current project'
+  const scopeLabel = options.global === true ? 'global (home)' : options.global === false ? 'this project' : 'choose in next step'
   const prompt = new MultiSelect({
     name: 'agents',
-    message: `Select adapters to install (destination: ${installScope})`,
+    message: `Select adapters to install (destination: ${scopeLabel})`,
     choices: available.map(a => ({
       name: a.key,
       message: `${a.name}${alreadyInstalled.has(a.key) ? ' — installed' : ' — new'}${!method.adapters[a.key] ? ' (generic)' : ''}`,

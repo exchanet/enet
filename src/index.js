@@ -67,9 +67,10 @@ program
 
 program
   .command('install <method>')
-  .description('Install a method into the current project')
+  .description('Install a method (default: global; use -p for this project only)')
   .option('-a, --agent <agent>', 'Force agent: cursor | windsurf | antigravity | claudecode | copilot | generic')
-  .option('-g, --global', 'Install globally to home directory')
+  .option('-g, --global', 'Install globally (default) — available for all agents/projects')
+  .option('-p, --project', 'Install only in current project')
   .option('--all', 'Install for all detected agents without prompting')
   .action(installCommand)
 
