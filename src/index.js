@@ -17,36 +17,42 @@ const require = createRequire(import.meta.url)
 const pkg = require('../package.json')
 const VERSION = pkg.version
 
-// ── Version check ─────────────────────────────────────────────────────────────
-// Runs in background — never blocks the command, never crashes if offline
+function isNewerVersion (latest, current) {
+  const parts = (v) => String(v).replace(/^v/, '').split('.').map(Number)
+  const a = parts(latest)
+  const b = parts(current)
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = a[i] || 0
+    const y = b[i] || 0
+    if (x > y) return true
+    if (x < y) return false
+  }
+  return false
+}
 
-async function checkForUpdate() {
+// ── Version check (every command) ─────────────────────────────────────────────
+// Shows warning if a newer enet is on npm; never blocks, never crashes if offline
+
+async function checkForUpdate () {
   try {
-    const res = await fetch(
-      'https://registry.npmjs.org/@exchanet/enet/latest',
-      { signal: AbortSignal.timeout(3000) }
-    )
+    const res = await fetch('https://registry.npmjs.org/@exchanet/enet/latest', { signal: AbortSignal.timeout(3000) })
     if (!res.ok) return
     const data = await res.json()
-    const latest = data.version
-    if (latest && latest !== VERSION) {
+    const latest = data?.version
+    if (latest && isNewerVersion(latest, VERSION)) {
       console.log(
-        chalk.yellow('  ⚠ Update available: ') +
-        chalk.dim(`v${VERSION}`) +
-        chalk.white(' → ') +
-        chalk.green(`v${latest}`) + '\n' +
-        chalk.dim('  Run ') +
-        chalk.white('npm install -g @exchanet/enet') +
-        chalk.dim(' to update.\n')
+        chalk.yellow('  ⚠ Warning: a newer version of enet is available.\n') +
+        chalk.dim(`  Current: v${VERSION}  →  Latest: v${latest}\n`) +
+        chalk.dim('  Update: ') +
+        chalk.white('npm install -g @exchanet/enet\n')
       )
     }
   } catch {
-    // Offline or npm unreachable — silently skip
+    // Offline or timeout — skip silently
   }
 }
 
-// Fire in background without await — command runs immediately
-checkForUpdate()
+await checkForUpdate()
 
 // ── Header ────────────────────────────────────────────────────────────────────
 
