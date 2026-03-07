@@ -2,7 +2,8 @@ import chalk from 'chalk'
 import ora from 'ora'
 import fs from 'fs-extra'
 import path from 'path'
-import readline from 'readline'
+import enquirer from 'enquirer'
+const { MultiSelect } = enquirer
 import { getAllMethods, getMethod, fetchFromGitHub, readInstallRecord, writeInstallRecord } from '../utils/registry.js'
 import { detectSystemAgents, detectAgent, getInstallPath, AGENTS } from '../utils/agent_detector.js'
 import { installForAgent } from './install.js'
@@ -158,66 +159,36 @@ async function updateOneAdapter(method, agent, options = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Checkbox for new agents only (shown during update)
+// New agents selection during update (Enquirer, Windows-safe)
 // ─────────────────────────────────────────────────────────────────
 
 async function checkboxSelectNew(newAgents, method) {
-  const items = newAgents.map(a => ({
-    agent:       a,
-    checked:     true,
-    usesGeneric: !method.adapters[a.key]
-  }))
+  if (newAgents.length === 0) return []
 
-  return new Promise((resolve) => {
-    let cursor = 0
-    const lineCount = () => items.length + 4
+  if (!process.stdin.isTTY) {
+    return newAgents
+  }
 
-    const render = () => {
-      if (render.drawn) process.stdout.write(`\x1B[${lineCount()}A`)
-      render.drawn = true
-
-      items.forEach((item, i) => {
-        const isCursor = i === cursor
-        const box     = item.checked     ? chalk.green('[✓]')           : chalk.dim('[ ]')
-        const arrow   = isCursor         ? chalk.cyan(' ❯ ')            : '   '
-        const name    = isCursor         ? chalk.white(item.agent.name) : chalk.dim(item.agent.name)
-        const generic = item.usesGeneric ? chalk.dim(' (generic adapter)') : ''
-        process.stdout.write(`${arrow}${box} ${name}${generic}\n`)
-      })
-
-      process.stdout.write('\n')
-      process.stdout.write(chalk.dim('  ↑↓ navigate · Space toggle · A all · Enter confirm · Ctrl+C cancel\n\n'))
+  const prompt = new MultiSelect({
+    name: 'newAgents',
+    message: 'Add these agents for this method?',
+    choices: newAgents.map(a => ({
+      name: a.key,
+      message: `${a.name}${!method.adapters[a.key] ? ' (generic adapter)' : ''}`,
+      value: a,
+      enabled: true
+    })),
+    result (names) {
+      return this.options.choices.filter(c => names.includes(c.name)).map(c => c.value)
     }
-
-    render()
-
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-    if (process.stdin.isTTY) process.stdin.setRawMode(true)
-    process.stdin.resume()
-
-    process.stdin.on('data', (key) => {
-      const k = key.toString()
-      if      (k === '\u001b[A') { cursor = (cursor - 1 + items.length) % items.length; render() }
-      else if (k === '\u001b[B') { cursor = (cursor + 1) % items.length; render() }
-      else if (k === ' ')        { items[cursor].checked = !items[cursor].checked; render() }
-      else if (k === 'a' || k === 'A') {
-        const all = items.every(i => i.checked)
-        items.forEach(i => { i.checked = !all })
-        render()
-      }
-      else if (k === '\r' || k === '\n') {
-        if (process.stdin.isTTY) process.stdin.setRawMode(false)
-        process.stdin.pause()
-        rl.close()
-        resolve(items.filter(i => i.checked).map(i => i.agent))
-      }
-      else if (k === '\u0003') {
-        if (process.stdin.isTTY) process.stdin.setRawMode(false)
-        process.stdin.pause()
-        rl.close()
-        console.log('\n')
-        process.exit(0)
-      }
-    })
   })
+
+  try {
+    return await prompt.run() || []
+  } catch (err) {
+    if (err.name === 'ENOTTY' || err.message?.includes('cancel')) {
+      return []
+    }
+    throw err
+  }
 }

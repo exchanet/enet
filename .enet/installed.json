@@ -1,0 +1,12 @@
+{
+  "modular-design": {
+    "agents": [
+      "generic",
+      "cursor",
+      "antigravity",
+      "claudecode"
+    ],
+    "version": "2.0.0",
+    "updatedAt": "2026-03-07T17:44:54.657Z"
+  }
+}

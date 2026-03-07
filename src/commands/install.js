@@ -2,7 +2,8 @@ import chalk from 'chalk'
 import ora from 'ora'
 import fs from 'fs-extra'
 import path from 'path'
-import readline from 'readline'
+import enquirer from 'enquirer'
+const { MultiSelect } = enquirer
 import { detectSystemAgents, getInstallPath, AGENTS } from '../utils/agent_detector.js'
 import { getMethod, fetchFromGitHub, readInstallRecord, writeInstallRecord } from '../utils/registry.js'
 
@@ -19,7 +20,12 @@ export async function installCommand(methodId, options) {
   }
 
   console.log(chalk.bold(`\n  ◆ ${method.name}`))
-  console.log(chalk.dim(`  ${method.description}\n`))
+  console.log(chalk.dim(`  ${method.description}`))
+  if (options.global) {
+    console.log(chalk.cyan('  Destination: global (home) — available for all agents/projects\n'))
+  } else {
+    console.log(chalk.dim(`  Destination: current project (use ${chalk.white('--global')} for all agents)\n`))
+  }
 
   // 2. Read existing install record — know what is already installed
   const record = await readInstallRecord(methodId)
@@ -55,7 +61,7 @@ export async function installCommand(methodId, options) {
       targetAgents = detected
     } else {
       // Always show checkbox — even with 1 agent, even on re-run
-      targetAgents = await checkboxSelect(detected, method, alreadyInstalled)
+      targetAgents = await checkboxSelect(detected, method, alreadyInstalled, options)
     }
 
     if (targetAgents.length === 0) {
@@ -84,14 +90,10 @@ export async function installCommand(methodId, options) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Checkbox selection UI
-//
-// Shows all detected agents with tags:
-//   — installed   already present on disk for this method
-//   — new         detected but never installed for this method
+// Adapter selection via Enquirer (works on Windows/PowerShell)
 // ─────────────────────────────────────────────────────────────────
 
-async function checkboxSelect(detected, method, alreadyInstalled = new Set()) {
+async function checkboxSelect(detected, method, alreadyInstalled = new Set(), options = {}) {
   const available   = detected.filter(a =>  method.adapters[a.key] || method.adapters['generic'])
   const unavailable = detected.filter(a => !method.adapters[a.key] && !method.adapters['generic'])
 
@@ -101,76 +103,42 @@ async function checkboxSelect(detected, method, alreadyInstalled = new Set()) {
     process.exit(1)
   }
 
-  const items = available.map(a => ({
-    agent:       a,
-    checked:     true,
-    installed:   alreadyInstalled.has(a.key),
-    usesGeneric: !method.adapters[a.key]
-  }))
+  if (unavailable.length > 0) {
+    console.log(chalk.dim(`  No adapter for: ${unavailable.map(a => a.name).join(', ')}\n`))
+  }
 
-  console.log(chalk.white('  Select adapters to install:\n'))
-
-  return new Promise((resolve) => {
-    let cursor = 0
-
-    const lineCount = () => items.length + (unavailable.length > 0 ? 3 : 2) + 2
-
-    const render = () => {
-      if (render.drawn) process.stdout.write(`\x1B[${lineCount()}A`)
-      render.drawn = true
-
-      items.forEach((item, i) => {
-        const isCursor = i === cursor
-        const box     = item.checked     ? chalk.green('[✓]')           : chalk.dim('[ ]')
-        const arrow   = isCursor         ? chalk.cyan(' ❯ ')            : '   '
-        const name    = isCursor         ? chalk.white(item.agent.name) : chalk.dim(item.agent.name)
-        const status  = item.installed   ? chalk.dim(' — installed')    : chalk.yellow(' — new')
-        const generic = item.usesGeneric ? chalk.dim(' (generic adapter)') : ''
-        process.stdout.write(`${arrow}${box} ${name}${status}${generic}\n`)
-      })
-
-      if (unavailable.length > 0) {
-        process.stdout.write(chalk.dim(`\n  No adapter for: ${unavailable.map(a => a.name).join(', ')}\n`))
-      }
-      process.stdout.write('\n')
-      process.stdout.write(chalk.dim('  ↑↓ navigate · Space toggle · A all · Enter confirm · Ctrl+C cancel\n\n'))
+  const installScope = options.global ? 'global (home)' : 'current project'
+  const prompt = new MultiSelect({
+    name: 'agents',
+    message: `Select adapters to install (destination: ${installScope})`,
+    choices: available.map(a => ({
+      name: a.key,
+      message: `${a.name}${alreadyInstalled.has(a.key) ? ' — installed' : ' — new'}${!method.adapters[a.key] ? ' (generic)' : ''}`,
+      value: a,
+      enabled: true
+    })),
+    result (names) {
+      return this.options.choices.filter(c => names.includes(c.name)).map(c => c.value)
     }
-
-    render()
-
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-    if (process.stdin.isTTY) process.stdin.setRawMode(true)
-    process.stdin.resume()
-
-    process.stdin.on('data', (key) => {
-      const k = key.toString()
-      if      (k === '\u001b[A') { cursor = (cursor - 1 + items.length) % items.length; render() }
-      else if (k === '\u001b[B') { cursor = (cursor + 1) % items.length; render() }
-      else if (k === ' ')        { items[cursor].checked = !items[cursor].checked; render() }
-      else if (k === 'a' || k === 'A') {
-        const all = items.every(i => i.checked)
-        items.forEach(i => { i.checked = !all })
-        render()
-      }
-      else if (k === '\r' || k === '\n') {
-        if (process.stdin.isTTY) process.stdin.setRawMode(false)
-        process.stdin.pause()
-        rl.close()
-        const selected = items.filter(i => i.checked).map(i => i.agent)
-        if (selected.length > 0) {
-          console.log(chalk.dim(`\n  Installing for: ${selected.map(a => a.name).join(', ')}\n`))
-        }
-        resolve(selected)
-      }
-      else if (k === '\u0003') {
-        if (process.stdin.isTTY) process.stdin.setRawMode(false)
-        process.stdin.pause()
-        rl.close()
-        console.log('\n')
-        process.exit(0)
-      }
-    })
   })
+
+  if (!process.stdin.isTTY) {
+    return available
+  }
+
+  try {
+    const selected = await prompt.run()
+    if (selected && selected.length > 0) {
+      console.log(chalk.dim(`\n  Installing for: ${selected.map(a => a.name).join(', ')}\n`))
+    }
+    return selected || []
+  } catch (err) {
+    if (err.name === 'ENOTTY' || err.message?.includes('cancel')) {
+      console.log(chalk.dim('\n  Cancelled.\n'))
+      process.exit(0)
+    }
+    throw err
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
