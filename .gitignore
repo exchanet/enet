@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Registry cache (written by src/utils/registry.js)
+.registry-cache.json
+
+# Local install state when developing enet in this repo
+.enet/
+.cursor/
+.agent/
+CLAUDE.md
+.windsurfrules
+.github/copilot-instructions.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env (if you add any)
+.env
+.env.local
+
+# Optional: uncomment if you don't want to commit lockfile
+# package-lock.json
