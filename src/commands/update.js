@@ -4,7 +4,7 @@ import fs from 'fs-extra'
 import path from 'path'
 import readline from 'readline'
 import { getAllMethods, getMethod, fetchFromGitHub, readInstallRecord, writeInstallRecord } from '../utils/registry.js'
-import { detectSystemAgents, getInstallPath, AGENTS } from '../utils/agent_detector.js'
+import { detectSystemAgents, detectAgent, getInstallPath, AGENTS } from '../utils/agent_detector.js'
 import { installForAgent } from './install.js'
 
 export async function updateCommand(methodId, options) {
@@ -27,11 +27,20 @@ export async function updateCommand(methodId, options) {
   console.log(chalk.bold('\n  ◆ enet update\n'))
 
   let totalUpdated = 0, totalAdded = 0, totalSkipped = 0
+  const currentAgent = await detectAgent()
 
   for (const method of targets) {
-    const record = await readInstallRecord(method.id)
+    let record = await readInstallRecord(method.id)
 
-    // Skip methods not installed at all
+    // If no record but adapter file exists (e.g. list shows "installed"), treat as installed for current agent
+    if ((!record || record.agents.length === 0) && currentAgent) {
+      const pathForCurrent = getInstallPath(currentAgent, method.id)
+      if (await fs.pathExists(pathForCurrent)) {
+        record = { agents: [currentAgent.key], version: record?.version, updatedAt: record?.updatedAt }
+        await writeInstallRecord(method.id, { agents: record.agents, version: method.version })
+      }
+    }
+
     if (!record || record.agents.length === 0) {
       totalSkipped++
       console.log(chalk.dim(`  ${method.name} — not installed, skipping`))
